@@ -156,7 +156,7 @@ void KimbleBase::occupy_block_on_board(Player_t *player, uint8_t block_number, u
     sprintf(buf, "Player#%s, Peg#%d occupied POS=%d, (%s), DISTANCE_TO_POP=%d", player->config.player_name, peg_id, block_number,
             finish_lane_flag ? "Finish Lane" : "Normal Lane",
             finish_lane_flag ? FINISH_POST_MARKER-player->meta_data.pegs[peg_id].distance_covered
-                                             : 32-player->meta_data.pegs[peg_id].distance_covered);
+                                             : TOTAL_BLOCKS-player->meta_data.pegs[peg_id].distance_covered);
     ENGINE_LOG(buf);
 }
 
@@ -404,6 +404,8 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
             player->meta_data.pegs[peg_id].distance_to_origin_marker -= 1;
             player->meta_data.pegs[peg_id].peg_state = IN_CIRCULATION;
             player->meta_data.pegs[peg_id].distance_covered = 1;
+            player->meta_data.pegs[peg_id].distance_to_origin_marker -= 1;
+            player->meta_data.pegs[peg_id].distance_to_pop -= 1;
             player->meta_data.pegs_in_normal_lane += 1;
 
         } else if (player->meta_data.pegs[peg_id].peg_state == IN_CIRCULATION) {
@@ -411,12 +413,14 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
             player->meta_data.pegs[peg_id].peg_position = next_pos;
             player->meta_data.pegs[peg_id].distance_covered += steps;
             player->meta_data.pegs[peg_id].distance_to_origin_marker -= steps;
+            player->meta_data.pegs[peg_id].distance_to_pop -= steps;
 
         } else if (player->meta_data.pegs[peg_id].peg_state == IN_FINISH_LANE) {
 
             if (next_pos < FINISH_POST_MARKER) {
                 // move inside finish lane
                 player->meta_data.pegs[peg_id].distance_covered = steps;
+                player->meta_data.pegs[peg_id].distance_to_pop = FINISH_POST_MARKER-next_pos;
                 player->meta_data.pegs[peg_id].distance_to_origin_marker = -1;
                 player->meta_data.pegs[peg_id].peg_position = next_pos;
                 player->meta_data.pegs_in_finish_lane += 1;
@@ -425,7 +429,8 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
                 }
             } else if (next_pos == FINISH_POST_MARKER) {
                 // congrats, this peg can pop out now
-                player->meta_data.pegs[peg_id].distance_covered = 32;
+                player->meta_data.pegs[peg_id].distance_covered = next_pos+NORMAL_LANE_BLOCKS;
+                player->meta_data.pegs[peg_id].distance_to_pop = 0;
                 player->meta_data.pegs[peg_id].distance_to_origin_marker = -1;
                 player->meta_data.pegs[peg_id].peg_position = -1;
                 player->meta_data.pegs[peg_id].peg_state = POPPED_OUT;
@@ -542,7 +547,7 @@ static int8_t peg_closest_to_finish_lane(Player_t *player)
     for (i = 0; (i < MAX_NUMBER_OF_PEGS) && flag; i++) {
         flag = 0;
         for (j = 0; j < MAX_NUMBER_OF_PEGS-1; j++) {
-            if (pegs[j + 1].distance_to_origin_marker > pegs[j].distance_to_origin_marker) {
+            if ((pegs[j + 1].distance_to_pop > pegs[j].distance_to_pop) && (pegs[j].distance_to_pop != 0)) {
                 temp_pegs = pegs[j];
                 pegs[j] = pegs[j + 1];
                 pegs[j + 1] = temp_pegs;
@@ -552,7 +557,6 @@ static int8_t peg_closest_to_finish_lane(Player_t *player)
     }
 
     peg_id = pegs[3].peg_number;
-
     return peg_id;
 }
 

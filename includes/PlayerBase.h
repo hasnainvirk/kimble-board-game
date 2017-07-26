@@ -55,6 +55,7 @@ typedef struct {
     int8_t peg_state;
     int8_t peg_position;
     int8_t distance_covered;
+    int8_t distance_to_pop;
     int8_t distance_to_origin_marker;
 } Peg_t;
 

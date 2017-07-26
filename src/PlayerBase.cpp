@@ -67,7 +67,8 @@ int8_t PlayerBase::create_players(uint8_t num_players, Player_config_t *config)
             player.meta_data.pegs[peg_num].peg_state= IN_HOME;
             player.meta_data.pegs[peg_num].peg_position = IN_HOME;
             player.meta_data.pegs[peg_num].distance_covered = 0;
-            player.meta_data.pegs[peg_num].distance_to_origin_marker = 27;
+            player.meta_data.pegs[peg_num].distance_to_pop = 32+1; // 32 block position and 1 arbitrary pop-out position
+            player.meta_data.pegs[peg_num].distance_to_origin_marker = 28; //28 Normal Lane blocks, 28th is the origin marker and then 4 Finish lane blocks
         }
 
         //ith player is ready to be integrated into the list
@@ -115,31 +116,6 @@ int8_t PlayerBase::add_entry_to_list(Player_entry_t *&list_head, Player_t *data)
     }
 
     return SUCCESS;
-}
-
-// Remove a player from players list
-#if 0
-int8_t PlayerBase::remove_entry_from_list(Player_entry_t *&list_head, uint8_t player_id)
-{
-    Player_entry_t *current = list_head;
-    Player_entry_t *next;
-
-    while (current != NULL) {
-        if (current->player_data->player_id == player_id) {
-            delete current->player_data;
-            next = current->next;
-        }
-    }
-    return SUCCESS;
-
-}
-#endif
-
-// Update entry in list
-int8_t PlayerBase::update_entry_in_list(Player_entry_t *&list, Player_data_t *data, uint8_t player_id)
-{
-    return SUCCESS;
-
 }
 
 // Drop the whole list

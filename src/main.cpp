@@ -98,9 +98,9 @@ int main()
     //TEST_occupy_block_on_board();
     //TEST_free_block_on_board();
     //TEST_kill_opponent_peg();
-    TEST_enter_finish_lane();
-    TEST_pop_a_peg();
-    //TEST_simulate_game();
+    //TEST_enter_finish_lane();
+    //TEST_pop_a_peg();
+    TEST_simulate_game();
     return 0;
     //TEST_add_entry_to_list();
 }
