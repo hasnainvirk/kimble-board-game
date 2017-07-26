@@ -57,18 +57,44 @@ int8_t PlayerBase::create_players(uint8_t num_players, Player_config_t *config)
         player.config = *config;
         config++;
         player.meta_data.pegs_in_play = MAX_NUMBER_OF_PEGS;
+        player.meta_data.player_standing = 0;
         player.meta_data.pegs_popped_out = 0;
+        player.meta_data.pegs_in_normal_lane = 0;
+        player.meta_data.pegs_in_finish_lane = 0;
         player.meta_data.player_status = AWAITING_TURN;
         for (uint8_t peg_num=0; peg_num < MAX_NUMBER_OF_PEGS; peg_num++) {
             player.meta_data.pegs[peg_num].peg_number= peg_num;
             player.meta_data.pegs[peg_num].peg_state= IN_HOME;
             player.meta_data.pegs[peg_num].peg_position = IN_HOME;
+            player.meta_data.pegs[peg_num].distance_covered = 0;
+            player.meta_data.pegs[peg_num].distance_to_origin_marker = 27;
         }
 
         //ith player is ready to be integrated into the list
+        player.meta_data.pegs_at_home = MAX_NUMBER_OF_PEGS;
         retcode = add_entry_to_list(player_list_head, &player);
     }
     return retcode;
+}
+
+int8_t PlayerBase::update_player_status(Player_t *data)
+{
+    Player_entry_t *current = player_list_head;
+    Player_entry_t *next;
+
+    while (current != NULL) {
+
+        next = current->next;
+
+        if (current->player_data->player_id == data->player_id) {
+            memcpy(current->player_data, data, sizeof (Player_t));
+            return SUCCESS;
+        }
+
+        current = next;
+    }
+
+    return PLAYER_DOES_NOT_EXIST;
 }
 
 // Enter a player to the players list

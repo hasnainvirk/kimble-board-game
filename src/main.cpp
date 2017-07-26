@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "KimbleBase.h"
+#include "Test.h"
 
 static const char *determine_user_colour(uint8_t colour)
 {
@@ -47,12 +48,6 @@ static const char *determine_user_status(uint8_t status)
         case LOST:
             ret_val = "LOST";
             break;
-        case NUMBER_2:
-            ret_val =  "NUMBER_2";
-            break;
-        case NUMBER_3:
-            ret_val =  "NUMBER_3";
-            break;
         case WON:
             ret_val =  "WON";
             break;
@@ -63,7 +58,7 @@ static const char *determine_user_status(uint8_t status)
     return ret_val;
 }
 
-static const char *determine_peg_state(uint8_t state)
+static const char *determine_peg_state(int8_t state)
 {
     const char *ret_val;
 
@@ -90,11 +85,13 @@ static const char *determine_peg_state(uint8_t state)
 static void TEST_add_entry_to_list();
 static void TEST_simulate_game();
 static void print_meta_data(Player_t *data);
+static void TEST_kill_opponent_peg();
 
 int main()
 {
 
-    TEST_simulate_game();
+    TEST_kill_opponent_peg();
+    //TEST_simulate_game();
     return 0;
     //TEST_add_entry_to_list();
 }
@@ -116,7 +113,7 @@ static void print_meta_data(Player_t *data)
 
 static void TEST_simulate_game()
 {
-    KimbleBase game;
+    KimbleBase game(MAX_NUMBER_OF_PLAYERS);
     Player_config_t config[4];
     config[0].player_name = "Hasnain";
     config[0].peg_colour = RED;
@@ -126,7 +123,7 @@ static void TEST_simulate_game()
     config[2].peg_colour = BLUE;
     config[3].player_name = "Ahad";
     config[3].peg_colour = YELLOW;
-    game.simulate_game(config, 4);
+    game.simulate_game(config);
 
     for (uint8_t i=0; i < MAX_NUMBER_OF_PLAYERS; i++) {
         Player_t *data = NULL;
@@ -138,6 +135,27 @@ static void TEST_simulate_game()
 
         print_meta_data(data);
     }
+}
+
+static void TEST_kill_opponent_peg()
+{
+    Test test_env;
+    Player_config_t config[MAX_NUMBER_OF_PLAYERS];
+    config[0].player_name = "Hasnain";
+    config[0].peg_colour = RED;
+    config[1].player_name = "Noriko";
+    config[1].peg_colour = GREEN;
+    config[2].player_name = "Akif";
+    config[2].peg_colour = BLUE;
+    config[3].player_name = "Ahad";
+    config[3].peg_colour = YELLOW;
+
+    KimbleBase game(MAX_NUMBER_OF_PLAYERS);
+    game.players.create_players(MAX_NUMBER_OF_PLAYERS, config);
+
+    test_env.Test_kill_opponent_peg(&game);
+
+
 }
 
 static void TEST_add_entry_to_list()

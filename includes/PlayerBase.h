@@ -18,6 +18,10 @@ typedef enum {
     INVALID_PARAMETER=-1,
     PLAYER_DOES_NOT_EXIST=-2,
     PLAYER_ALREADY_EXIST=-3,
+    OPERATION_NOT_ALLOWED=-4,
+    PEG_ALREADY_POPPED_OUT=-5,
+    NO_MORE_PEGS_AT_HOME=-6,
+    NO_PEGS_IN_PLAY=-7
 } error_codes;
 
 typedef enum {
@@ -33,31 +37,35 @@ typedef struct {
 } Player_config_t;
 
 typedef enum {
-    IN_HOME,
-    IN_CIRCULATION,
-    IN_FINISH_LANE,
-    POPPED_OUT
+    IN_HOME = -1,
+    IN_CIRCULATION = 0,
+    IN_FINISH_LANE = 1,
+    POPPED_OUT = 2
 } Peg_state_e;
 
 typedef enum {
     ROLLING,
     AWAITING_TURN,
-    NUMBER_3,
-    NUMBER_2,
     LOST,
     WON
 } Player_status;
 
 typedef struct {
     uint8_t peg_number;
-    uint8_t peg_state;
-    uint8_t peg_position;
+    int8_t peg_state;
+    int8_t peg_position;
+    int8_t distance_covered;
+    int8_t distance_to_origin_marker;
 } Peg_t;
 
 typedef struct {
     Peg_t pegs[MAX_NUMBER_OF_PEGS];
     uint8_t player_status;
+    uint8_t player_standing;
     uint8_t pegs_in_play;
+    uint8_t pegs_at_home;
+    uint8_t pegs_in_normal_lane;
+    uint8_t pegs_in_finish_lane;
     uint8_t pegs_popped_out;
 } Player_data_t;
 
@@ -90,7 +98,7 @@ public:
      *
      * @params   data   Player meta data
      */
-    Player_status update_player_status(Player_t *data);
+    int8_t update_player_status(Player_t *player_data);
 
     int8_t access_player_data(uint8_t player_id, Player_t *&player_data);
 
@@ -106,11 +114,6 @@ private:
 
     // Enter a player to the players list
     int8_t add_entry_to_list(Player_entry_t *&list, Player_t *data);
-
-#if 0
-    // Remove a player from players list
-    int8_t remove_entry_from_list(Player_entry_t *&list, uint8_t player_id);
-#endif
 
     // Update entry in list
     int8_t update_entry_in_list(Player_entry_t *&list, Player_data_t *data, uint8_t player_id);
