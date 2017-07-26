@@ -86,11 +86,20 @@ static void TEST_add_entry_to_list();
 static void TEST_simulate_game();
 static void print_meta_data(Player_t *data);
 static void TEST_kill_opponent_peg();
+static void TEST_occupy_block_on_board();
+static void TEST_free_block_on_board();
+static void TEST_enter_finish_lane();
+static void TEST_pop_a_peg();
+
+static void do_config_players(Player_config_t *config);
 
 int main()
 {
-
-    TEST_kill_opponent_peg();
+    //TEST_occupy_block_on_board();
+    //TEST_free_block_on_board();
+    //TEST_kill_opponent_peg();
+    TEST_enter_finish_lane();
+    TEST_pop_a_peg();
     //TEST_simulate_game();
     return 0;
     //TEST_add_entry_to_list();
@@ -109,6 +118,42 @@ static void print_meta_data(Player_t *data)
         printf("\t Peg position: %d\n", data->meta_data.pegs[j].peg_position);
         printf("\t Peg state: %s\n", determine_peg_state(data->meta_data.pegs[j].peg_state));
     }
+}
+
+static void TEST_enter_finish_lane()
+{
+    Test test_env;
+    Player_config_t config[MAX_NUMBER_OF_PLAYERS];
+
+    do_config_players(config);
+
+    KimbleBase game(MAX_NUMBER_OF_PLAYERS);
+    game.players.create_players(MAX_NUMBER_OF_PLAYERS, config);
+
+    if(test_env.enter_finish_lane(&game) != SUCCESS) {
+        fprintf(stderr, "Test - enter_finish_lane Failed.\n");
+    }
+
+    printf("Test - enter_finish_lane Passed.\n");
+
+}
+
+static void TEST_pop_a_peg()
+{
+    Test test_env;
+    Player_config_t config[MAX_NUMBER_OF_PLAYERS];
+
+    do_config_players(config);
+
+    KimbleBase game(MAX_NUMBER_OF_PLAYERS);
+    game.players.create_players(MAX_NUMBER_OF_PLAYERS, config);
+
+    if(test_env.pop_a_peg(&game) != SUCCESS) {
+        fprintf(stderr, "Test - pop_a_peg Failed.\n");
+    }
+
+    printf("Test - pop_a_peg Passed.\n");
+
 }
 
 static void TEST_simulate_game()
@@ -137,10 +182,8 @@ static void TEST_simulate_game()
     }
 }
 
-static void TEST_kill_opponent_peg()
+static void do_config_players(Player_config_t *config)
 {
-    Test test_env;
-    Player_config_t config[MAX_NUMBER_OF_PLAYERS];
     config[0].player_name = "Hasnain";
     config[0].peg_colour = RED;
     config[1].player_name = "Noriko";
@@ -150,12 +193,45 @@ static void TEST_kill_opponent_peg()
     config[3].player_name = "Ahad";
     config[3].peg_colour = YELLOW;
 
+}
+
+static void TEST_kill_opponent_peg()
+{
+    Test test_env;
+    Player_config_t config[MAX_NUMBER_OF_PLAYERS];
+
+    do_config_players(config);
+
     KimbleBase game(MAX_NUMBER_OF_PLAYERS);
     game.players.create_players(MAX_NUMBER_OF_PLAYERS, config);
 
-    test_env.Test_kill_opponent_peg(&game);
+    test_env.kill_opponent_peg(&game);
+}
 
+static void TEST_occupy_block_on_board()
+{
+    Test test_env;
+    Player_config_t config[MAX_NUMBER_OF_PLAYERS];
 
+    do_config_players(config);
+
+    KimbleBase game(MAX_NUMBER_OF_PLAYERS);
+    game.players.create_players(MAX_NUMBER_OF_PLAYERS, config);
+
+    test_env.occupy_block_on_board(&game);
+}
+
+static void TEST_free_block_on_board()
+{
+    Test test_env;
+    Player_config_t config[MAX_NUMBER_OF_PLAYERS];
+
+    do_config_players(config);
+
+    KimbleBase game(MAX_NUMBER_OF_PLAYERS);
+    game.players.create_players(MAX_NUMBER_OF_PLAYERS, config);
+
+    test_env.free_block_on_board(&game);
 }
 
 static void TEST_add_entry_to_list()

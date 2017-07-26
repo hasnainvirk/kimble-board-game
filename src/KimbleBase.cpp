@@ -107,6 +107,7 @@ void KimbleBase::game_engine_log(Player_config_t *config, const char *msg)
 void KimbleBase::occupy_block_on_board(Player_t *player, uint8_t block_number, uint8_t peg_id, bool finish_lane_flag)
 {
     uint8_t count = 0;
+    bool done = false;
 
     if (!finish_lane_flag) {
         board->pos_normal_lane[block_number].occupied = true;
@@ -114,11 +115,14 @@ void KimbleBase::occupy_block_on_board(Player_t *player, uint8_t block_number, u
         board->pos_normal_lane[block_number].pos = block_number;
         for (uint8_t i = 0; i < MAX_NUMBER_OF_PEGS; i++) {
             if (board->pos_normal_lane[block_number].occupant[i].peg_id == -1) {
-                //board->pos_normal_lane[block_number].peg_ids[i] = peg_id;
-                board->pos_normal_lane[block_number].occupant[i].peg_id = peg_id;
-                board->pos_normal_lane[block_number].occupant[i].player_id = player->player_id;
-                count++;
-            } else if (board->pos_normal_lane[block_number].occupant[i].peg_id != -1){
+                if (!done){
+                    board->pos_normal_lane[block_number].occupant[i].peg_id = peg_id;
+                    board->pos_normal_lane[block_number].occupant[i].player_id = player->player_id;
+                    done = true;
+                    count++;
+                }
+            } else if (board->pos_normal_lane[block_number].occupant[i].peg_id != -1
+                       && (board->pos_normal_lane[block_number].occupant[i].player_id == player->player_id)){
                 count++;
             }
         }
@@ -132,10 +136,14 @@ void KimbleBase::occupy_block_on_board(Player_t *player, uint8_t block_number, u
         board->pos_finish_lane[block_number].pos = block_number;
         for (uint8_t i = 0; i < MAX_NUMBER_OF_PEGS; i++) {
             if (board->pos_finish_lane[block_number].occupant[i].peg_id == -1) {
-                board->pos_finish_lane[block_number].occupant[i].peg_id = peg_id;
-                board->pos_finish_lane[block_number].occupant[i].player_id = player->player_id;
-            } else {
-                assert(board->pos_finish_lane[block_number].occupant[i].player_id == player->player_id);
+                if (!done) {
+                    board->pos_finish_lane[block_number].occupant[i].peg_id = peg_id;
+                    board->pos_finish_lane[block_number].occupant[i].player_id = player->player_id;
+                    done = true;
+                    count++;
+                }
+            } else if(board->pos_finish_lane[block_number].occupant[i].peg_id != -1
+                      && (board->pos_finish_lane[block_number].occupant[i].player_id == player->player_id)){
                 count++;
             }
         }
@@ -145,7 +153,10 @@ void KimbleBase::occupy_block_on_board(Player_t *player, uint8_t block_number, u
         }
     }
 
-    sprintf(buf, "Player#%s, Peg#%d occupied POS=%d", player->config.player_name, peg_id, block_number);
+    sprintf(buf, "Player#%s, Peg#%d occupied POS=%d, (%s), DISTANCE_TO_POP=%d", player->config.player_name, peg_id, block_number,
+            finish_lane_flag ? "Finish Lane" : "Normal Lane",
+            finish_lane_flag ? FINISH_POST_MARKER-player->meta_data.pegs[peg_id].distance_covered
+                                             : 32-player->meta_data.pegs[peg_id].distance_covered);
     ENGINE_LOG(buf);
 }
 
@@ -280,7 +291,7 @@ int8_t KimbleBase::kill_oponents_peg(uint8_t player_id, uint8_t block_pos)
     free_block_on_board(player, block_pos, (uint8_t)peg_id, false);
 
     player->meta_data.pegs[peg_id].distance_covered = 0;
-    player->meta_data.pegs[peg_id].distance_to_origin_marker = CIRCLE_WRAP_AROUND_MARKER;
+    player->meta_data.pegs[peg_id].distance_to_origin_marker = NORMAL_LANE_BLOCKS;
     player->meta_data.pegs[peg_id].peg_position = -1;
     player->meta_data.pegs[peg_id].peg_state = IN_HOME;
 
@@ -296,6 +307,7 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
 
         uint8_t zone_start_idx;
         bool finish_lane_flag = false;
+        bool pop_up_flag = false;
 
         switch (player->config.peg_colour) {
             case BLUE:
@@ -331,7 +343,7 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
             return PEG_ALREADY_POPPED_OUT;
         }
 
-        if ((distance_covered + steps > CIRCLE_WRAP_AROUND_MARKER)
+        if ((distance_covered + steps >= NORMAL_LANE_BLOCKS)
                 && finish_lane_flag == false) {
             finish_lane_flag = true;
             player->meta_data.pegs[peg_id].peg_state = IN_FINISH_LANE;
@@ -342,19 +354,14 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
         if (prev_pos < 0) {
             next_pos = zone_start_idx;
         } else if ((prev_pos >= 0) && finish_lane_flag) {
-            next_pos = (steps) % FINISH_LANE_BLOCKS;
+            next_pos = steps;
         } else {
             next_pos = (prev_pos + steps) % NORMAL_LANE_BLOCKS;
         }
 
         // fill in the occupants at next position in an array
-        for (uint8_t i=0; i<MAX_NUMBER_OF_PEGS; i++) {
-            if (finish_lane_flag) {
-                occupants_at_next_pos[i] = board->pos_finish_lane[next_pos].occupant[i];
-            } else {
-                occupants_at_next_pos[i] = board->pos_normal_lane[next_pos].occupant[i];
-            }
-
+        for (uint8_t i=0; i<MAX_NUMBER_OF_PEGS; i++ && !finish_lane_flag) {
+            occupants_at_next_pos[i] = board->pos_normal_lane[next_pos].occupant[i];
          }
 
         // if you are in Circulation and a position is occupied, kill opponent
@@ -407,23 +414,31 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
 
         } else if (player->meta_data.pegs[peg_id].peg_state == IN_FINISH_LANE) {
 
-            if ((distance_covered + steps) <= FINISH_POST_MARKER) {
+            if (next_pos < FINISH_POST_MARKER) {
                 // move inside finish lane
                 player->meta_data.pegs[peg_id].distance_covered = steps;
                 player->meta_data.pegs[peg_id].distance_to_origin_marker = -1;
                 player->meta_data.pegs[peg_id].peg_position = next_pos;
                 player->meta_data.pegs_in_finish_lane += 1;
-                player->meta_data.pegs_in_normal_lane -= 1;
-            } else if ((distance_covered + steps) == FINISH_POST_MARKER + 1) {
+                if(player->meta_data.pegs_in_normal_lane != 0) {
+                    player->meta_data.pegs_in_normal_lane -= 1;
+                }
+            } else if (next_pos == FINISH_POST_MARKER) {
                 // congrats, this peg can pop out now
                 player->meta_data.pegs[peg_id].distance_covered = 32;
                 player->meta_data.pegs[peg_id].distance_to_origin_marker = -1;
                 player->meta_data.pegs[peg_id].peg_position = -1;
                 player->meta_data.pegs[peg_id].peg_state = POPPED_OUT;
                 // update peg-wide stats
-                player->meta_data.pegs_in_finish_lane -= 1;
+                if (player->meta_data.pegs_in_finish_lane != 0) {
+                    player->meta_data.pegs_in_finish_lane -= 1;
+                }
                 player->meta_data.pegs_popped_out += 1;
-                player->meta_data.pegs_in_play -= 1;
+                if ( player->meta_data.pegs_in_play != 0) {
+                    player->meta_data.pegs_in_play -= 1;
+                }
+
+                pop_up_flag = true;
             } else {
                 return OPERATION_NOT_ALLOWED;
             }
@@ -440,8 +455,17 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
         }
 
         //Log the stuff
-        sprintf(buf, "Peg#%d MOVED to POS=%d", peg_id, player->meta_data.pegs[peg_id].peg_position);
-        game_engine_log(&(player->config), buf);
+        if (pop_up_flag) {
+            sprintf(buf, "Peg#%d Popped Out. PEGS_AT_HOME=%d, PEGS_IN_LANE=%d, PEGS_IN_FINISH_LANE=%d, PEGS_POPPED_OUT=%d", peg_id,
+                    player->meta_data.pegs_at_home, player->meta_data.pegs_in_normal_lane,
+                    player->meta_data.pegs_in_finish_lane, player->meta_data.pegs_popped_out);
+
+            game_engine_log(&(player->config), buf);
+        } else {
+            sprintf(buf, "Peg#%d MOVED to POS=%d (%s)", peg_id, player->meta_data.pegs[peg_id].peg_position,
+                    finish_lane_flag ? "Finish Lane" : "Normal Lane");
+            game_engine_log(&(player->config), buf);
+        }
 
         return SUCCESS;
     }

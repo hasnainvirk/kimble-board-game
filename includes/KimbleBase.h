@@ -11,8 +11,11 @@
 #include "PlayerBase.h"
 
 #define DIE_FACES                      6 //faces 1-6
-#define FINISH_POST_MARKER             4 //steps
-#define CIRCLE_WRAP_AROUND_MARKER      27 //
+#define NORMAL_LANE_BLOCKS             28
+#define FINISH_LANE_BLOCKS             4
+#define TOTAL_BLOCKS                   NORMAL_LANE_BLOCKS+FINISH_LANE_BLOCKS
+#define FINISH_POST_MARKER             5 //steps 1-4 and a final pop-up step
+//#define CIRCLE_WRAP_AROUND_MARKER      27 // steps
 
 #define BLUE_ZONE_ORIGIN        0
 #define GREEN_ZONE_ORIGIN       7
@@ -24,8 +27,7 @@
 #define RED_ZONE_START         RED_ZONE_ORIGIN+1
 #define YELLOW_ZONE_START      YELLOW_ZONE_ORIGIN+1
 
-#define NORMAL_LANE_BLOCKS     28
-#define FINISH_LANE_BLOCKS     4
+
 
 #define ENGINE_LOG_ENABLED
 
