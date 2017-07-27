@@ -28,7 +28,7 @@ rm       = rm -f
 TARGET = Kimble
 
 all: $(TARGET)
-	@echo "Kimble - Compiling"
+	@echo "Kimble - Ready"
 
 $(TARGET): $(OBJECTS)
 	@$(LINKER) $@ $(LFLAGS) $(OBJECTS)
