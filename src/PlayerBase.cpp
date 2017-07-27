@@ -78,7 +78,7 @@ int8_t PlayerBase::create_players(uint8_t num_players, Player_config_t *config)
     return retcode;
 }
 
-int8_t PlayerBase::update_player_status(Player_t *data)
+void PlayerBase::player_status_summary(Player_summary_t *summary)
 {
     Player_entry_t *current = player_list_head;
     Player_entry_t *next;
@@ -87,15 +87,13 @@ int8_t PlayerBase::update_player_status(Player_t *data)
 
         next = current->next;
 
-        if (current->player_data->player_id == data->player_id) {
-            memcpy(current->player_data, data, sizeof (Player_t));
-            return SUCCESS;
-        }
+        summary->config = current->player_data->config;
+        summary->player_status = current->player_data->meta_data.player_status;
+
+        summary++;
 
         current = next;
     }
-
-    return PLAYER_DOES_NOT_EXIST;
 }
 
 // Enter a player to the players list

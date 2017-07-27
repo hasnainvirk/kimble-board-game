@@ -76,6 +76,7 @@ public:
 private:
     uint8_t number_of_players;
     Ground_t *board;
+    Turn_sequence_t *turn_seq;
     void turn_toss(uint8_t *player_ids, uint8_t length);
     void setup_board(Ground_t *board);
     int8_t game_engine();

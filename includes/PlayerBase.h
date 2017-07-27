@@ -76,6 +76,11 @@ typedef struct {
     Player_data_t meta_data;
 } Player_t;
 
+typedef struct {
+    Player_config_t config;
+    uint8_t player_status;
+} Player_summary_t;
+
 class PlayerBase {
 
 public:
@@ -94,12 +99,7 @@ public:
      */
     int8_t create_players(uint8_t num_players, Player_config_t *config);
 
-    /**
-     * Updates player status after every move.
-     *
-     * @params   data   Player meta data
-     */
-    int8_t update_player_status(Player_t *player_data);
+    void player_status_summary(Player_summary_t *summary);
 
     int8_t access_player_data(uint8_t player_id, Player_t *&player_data);
 

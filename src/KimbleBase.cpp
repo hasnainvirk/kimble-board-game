@@ -18,8 +18,6 @@
 
 static char buf[100];
 
-Turn_sequence_t *turn_seq;
-
 // Seed the random generator
 void seed_srand()
 {
@@ -73,7 +71,7 @@ KimbleBase::KimbleBase(uint8_t num_players)
 
 KimbleBase::~KimbleBase()
 {
-    delete turn_seq;
+    delete[] turn_seq;
     delete board;
 }
 
@@ -198,7 +196,8 @@ void KimbleBase::free_block_on_board(Player_t *player, uint8_t block_number, uin
         }
     }
 
-    sprintf(buf, "Player#%s vacating POS=%d", player->config.player_name, block_number);
+    sprintf(buf, "Player#%s vacating POS=%d (%s)", player->config.player_name, block_number,
+            finish_lane_flag ? "Finish Lane":"Normal Lane");
     ENGINE_LOG(buf);
 }
 
@@ -277,22 +276,25 @@ int8_t KimbleBase::kill_oponents_peg(uint8_t player_id, uint8_t block_pos)
         // kill anyone of them
         if (board->pos_normal_lane[block_pos].occupant[i].peg_id != -1) {
             peg_id = board->pos_normal_lane[block_pos].occupant[i].peg_id ;
+            break;
         }
     }
 
     // make absolutely sure that block position is occupied by a peg of this
     // specific id belonging to this specific player
     assert(peg_id >= 0);
-    assert(player->meta_data.pegs[peg_id].peg_position == block_pos);
+    //assert(player->meta_data.pegs[peg_id].peg_position == block_pos);
 
-    sprintf(buf, "%s's PEG#%d will die", player->config.player_name, peg_id);
+    sprintf(buf, "%s\'s PEG#%d will die", player->config.player_name, peg_id);
     ENGINE_LOG(buf);
 
     free_block_on_board(player, block_pos, (uint8_t)peg_id, false);
 
     player->meta_data.pegs[peg_id].distance_covered = 0;
     player->meta_data.pegs[peg_id].distance_to_origin_marker = NORMAL_LANE_BLOCKS;
-    player->meta_data.pegs[peg_id].peg_position = -1;
+    player->meta_data.pegs[peg_id].distance_to_pop = TOTAL_BLOCKS+1;
+    player->meta_data.pegs[peg_id].peg_number = peg_id;
+    player->meta_data.pegs[peg_id].peg_position = IN_HOME;
     player->meta_data.pegs[peg_id].peg_state = IN_HOME;
 
     player->meta_data.pegs_at_home+=1;
@@ -306,6 +308,7 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
     if (player->meta_data.pegs_in_normal_lane || player->meta_data.pegs_in_finish_lane || (flag == IN_HOME)) {
 
         uint8_t zone_start_idx;
+        bool lane_transition = false;
         bool finish_lane_flag = false;
         bool pop_up_flag = false;
 
@@ -343,15 +346,16 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
             return PEG_ALREADY_POPPED_OUT;
         }
 
-        if ((distance_covered + steps >= NORMAL_LANE_BLOCKS)
+        if ((distance_covered + steps > NORMAL_LANE_BLOCKS)
                 && finish_lane_flag == false) {
             finish_lane_flag = true;
+            lane_transition = true;
             player->meta_data.pegs[peg_id].peg_state = IN_FINISH_LANE;
             steps -= distance_to_origin;
         }
 
         // determine the next position of the peg on the board
-        if (prev_pos < 0) {
+        if (prev_pos == IN_HOME) {
             next_pos = zone_start_idx;
         } else if ((prev_pos >= 0) && finish_lane_flag) {
             next_pos = steps;
@@ -404,7 +408,6 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
             player->meta_data.pegs[peg_id].distance_to_origin_marker -= 1;
             player->meta_data.pegs[peg_id].peg_state = IN_CIRCULATION;
             player->meta_data.pegs[peg_id].distance_covered = 1;
-            player->meta_data.pegs[peg_id].distance_to_origin_marker -= 1;
             player->meta_data.pegs[peg_id].distance_to_pop -= 1;
             player->meta_data.pegs_in_normal_lane += 1;
 
@@ -432,7 +435,7 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
                 player->meta_data.pegs[peg_id].distance_covered = next_pos+NORMAL_LANE_BLOCKS;
                 player->meta_data.pegs[peg_id].distance_to_pop = 0;
                 player->meta_data.pegs[peg_id].distance_to_origin_marker = -1;
-                player->meta_data.pegs[peg_id].peg_position = -1;
+                player->meta_data.pegs[peg_id].peg_position = 33;
                 player->meta_data.pegs[peg_id].peg_state = POPPED_OUT;
                 // update peg-wide stats
                 if (player->meta_data.pegs_in_finish_lane != 0) {
@@ -445,6 +448,7 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
 
                 pop_up_flag = true;
             } else {
+                sprintf(buf, "Player#%s, Peg#%d Cannot pop. OPERATION_NOT_ALLOWED", player->config.player_name, peg_id);
                 return OPERATION_NOT_ALLOWED;
             }
         }
@@ -455,8 +459,11 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
         }
 
         // free previous block from board
-        if (prev_pos != -1) {
-            free_block_on_board(player, (uint8_t)prev_pos, peg_id, finish_lane_flag);
+        // If previous location was IN_HOME, do not free
+        if (prev_pos != IN_HOME) {
+            // if a transit from IN_CIRCULATION to IN_FINISH_LANE happened
+            // free previous occupation in normal lane
+            free_block_on_board(player, prev_pos, peg_id, lane_transition ? IN_CIRCULATION : finish_lane_flag);
         }
 
         //Log the stuff
@@ -532,12 +539,11 @@ int8_t KimbleBase::get_out_of_home(uint8_t player_id)
 }
 
 
-static int8_t peg_closest_to_finish_lane(Player_t *player)
+static void peg_to_pop_dist_order(Player_t *player, int8_t *ordered_list)
 {
     //sort in descending order
     uint8_t flag = 1;
     uint8_t i, j;
-    int8_t peg_id;
 
     Peg_t pegs[4];
     Peg_t temp_pegs;
@@ -556,26 +562,40 @@ static int8_t peg_closest_to_finish_lane(Player_t *player)
         }
     }
 
-    peg_id = pegs[3].peg_number;
-    return peg_id;
+    for (i = 0; i<MAX_NUMBER_OF_PEGS; i++) {
+        ordered_list[i] = pegs[i].peg_number;
+    }
 }
 
 void KimbleBase::set_player_status(Player_t *player)
 {
     uint8_t winner_count = 0;
     uint8_t still_playing_count = 0;
+    Player_t *other_players = NULL;
+
+    Player_summary_t summary[number_of_players];
+
+    players.player_status_summary(summary);
 
     for (uint8_t i = 0; i < number_of_players; i++) {
-        Player_t *other_players = NULL;
-        if (player->player_id == i) {
+        if (summary[i].config.peg_colour == player->config.peg_colour) {
             continue;
         }
-        players.access_player_data(i, other_players);
-        if (other_players->meta_data.player_status == AWAITING_TURN || other_players->meta_data.player_status == ROLLING ) {
+        if (summary[i].player_status == AWAITING_TURN
+                || summary[i].player_status == ROLLING) {
+            still_playing_count++;
+        } else if (summary[i].player_status == WON) {
+            winner_count++;
+        }
+/*        if (player->player_id == i) {
+            continue;
+        }
+        players.access_player_data(i, other_players);*/
+/*        if (other_players->meta_data.player_status == AWAITING_TURN || other_players->meta_data.player_status == ROLLING ) {
             still_playing_count++;
         } else if (other_players->meta_data.player_status == WON ){
             winner_count++;
-        }
+        }*/
     }
 
     if (still_playing_count == 0) {
@@ -594,8 +614,8 @@ void KimbleBase::set_player_status(Player_t *player)
 int8_t KimbleBase::game_engine()
 {
     int8_t retcode;
-    int8_t peg_id;
     bool rolling = false;
+    int8_t list_peg_ids[MAX_NUMBER_OF_PEGS];
 
     ENGINE_LOG("\n---- SIMULATING GAME ----\n");
 
@@ -605,6 +625,8 @@ int8_t KimbleBase::game_engine()
         for (uint8_t i = 0; i < number_of_players; i++) {
             //current user data before rolling the die
             Player_t *player = NULL;
+            int8_t counter  = MAX_NUMBER_OF_PEGS-1;
+            uint8_t peg_id;
 
             retcode = players.access_player_data(turn_seq[i].player_id, player);
 
@@ -633,9 +655,18 @@ int8_t KimbleBase::game_engine()
                         // will fail, in which case we try to move a peg available on the
                         // normal or finish lane if possible
                         if (player->meta_data.pegs_in_normal_lane > 0 || player->meta_data.pegs_in_finish_lane > 0) {
-                            peg_id = peg_closest_to_finish_lane(player);
-                            move_peg_to_position(player, (uint8_t) peg_id, turn_seq[i].die_outcome,
-                                                 player->meta_data.pegs[peg_id].peg_state);
+                            peg_to_pop_dist_order(player, list_peg_ids);
+                            counter = MAX_NUMBER_OF_PEGS-1;
+                            while (counter>=0) {
+                                peg_id = list_peg_ids[counter];
+                                if (move_peg_to_position(player, peg_id, turn_seq[i].die_outcome,
+                                                         player->meta_data.pegs[peg_id].peg_state) == SUCCESS){
+                                    break;
+                                }
+
+                                counter--;
+                            }
+
                             player->meta_data.player_status = AWAITING_TURN;
                         }
                         // get another turn as you had popped 6
@@ -644,9 +675,17 @@ int8_t KimbleBase::game_engine()
                         rolling = false;
                         if (player->meta_data.pegs_in_normal_lane > 0 || player->meta_data.pegs_in_finish_lane > 0) {
                             // as a basic strategy, move the peg nearest to Finish lane
-                            peg_id = peg_closest_to_finish_lane(player);
-                            move_peg_to_position(player, (uint8_t)peg_id, turn_seq[i].die_outcome,
-                                                 player->meta_data.pegs[peg_id].peg_state);
+                            peg_to_pop_dist_order(player, list_peg_ids);
+                            counter = MAX_NUMBER_OF_PEGS-1;
+                            while (counter>=0) {
+                                peg_id = list_peg_ids[counter];
+                                if (move_peg_to_position(player, (uint8_t)peg_id, turn_seq[i].die_outcome,
+                                                         player->meta_data.pegs[peg_id].peg_state) == SUCCESS){
+                                    break;
+                                }
+                                counter--;
+                            }
+
                             player->meta_data.player_status = AWAITING_TURN;
                         }
                     }
