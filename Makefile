@@ -5,6 +5,10 @@ SRCDIR = ./src
 INCLDIR = ./includes
 CXXFLAGS = -c -Wall -I$(INCLDIR)
 
+ifeq ($(OS),Windows_NT)
+$(error This does not work with Windows, use Unix/Linux/Mac OS X)
+endif
+
 DEBUG = 0
 TEST = 0
 
