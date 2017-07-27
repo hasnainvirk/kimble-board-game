@@ -29,37 +29,6 @@ int roll_die()
     return (rand() %  DIE_FACES) + 1;
 }
 
-void KimbleBase::setup_board(Ground_t *board)
-{
-
-    for (uint8_t i=0; i < NORMAL_LANE_BLOCKS; i++) {
-        board->pos_normal_lane[i].in_finish_lane = false;
-        board->pos_normal_lane[i].occupied = false;
-        // At max a block on the board can have four pegs (of same kind at the same time)
-        for (uint8_t j=0; j<MAX_NUMBER_OF_PEGS; j++) {
-            //board->pos_normal_lane[i].peg_ids[j] = -1;
-            board->pos_normal_lane[i].occupant[j].peg_id = -1;
-            board->pos_normal_lane[i].occupant[j].player_id = -1;
-        }
-       // board->pos_normal_lane[i].player_id = -1;
-       // board->pos_normal_lane[i].pos = -1;
-        board->pos_normal_lane[i].pos = i;
-
-    }
-
-    for (uint8_t i=0; i < FINISH_LANE_BLOCKS; i++) {
-        board->pos_finish_lane[i].in_finish_lane = true;
-        board->pos_finish_lane[i].occupied = false;
-        for (uint8_t j=0; j<MAX_NUMBER_OF_PEGS; j++) {
-             // board->pos_finish_lane[i].peg_ids[j] = -1;
-            board->pos_finish_lane[i].occupant[j].peg_id = -1;
-            board->pos_finish_lane[i].occupant[j].player_id = -1;
-          }
-        //board->pos_finish_lane[i].player_id = -1;
-        board->pos_finish_lane[i].pos = i;
-    }
-}
-
 KimbleBase::KimbleBase(uint8_t num_players)
 {
     number_of_players = num_players;
@@ -73,6 +42,31 @@ KimbleBase::~KimbleBase()
 {
     delete[] turn_seq;
     delete board;
+}
+
+void KimbleBase::setup_board(Ground_t *board)
+{
+    for (uint8_t i=0; i < NORMAL_LANE_BLOCKS; i++) {
+        board->pos_normal_lane[i].in_finish_lane = false;
+        board->pos_normal_lane[i].occupied = false;
+        // At max a block on the board can have four pegs (of same kind at the same time)
+        for (uint8_t j=0; j<MAX_NUMBER_OF_PEGS; j++) {
+            board->pos_normal_lane[i].occupant[j].peg_id = -1;
+            board->pos_normal_lane[i].occupant[j].player_id = -1;
+        }
+        board->pos_normal_lane[i].pos = i;
+
+    }
+
+    for (uint8_t i=0; i < FINISH_LANE_BLOCKS; i++) {
+        board->pos_finish_lane[i].in_finish_lane = true;
+        board->pos_finish_lane[i].occupied = false;
+        for (uint8_t j=0; j<MAX_NUMBER_OF_PEGS; j++) {
+            board->pos_finish_lane[i].occupant[j].peg_id = -1;
+            board->pos_finish_lane[i].occupant[j].player_id = -1;
+          }
+        board->pos_finish_lane[i].pos = i;
+    }
 }
 
 void KimbleBase::game_engine_log(Player_config_t *config, const char *msg)
@@ -109,7 +103,6 @@ void KimbleBase::occupy_block_on_board(Player_t *player, uint8_t block_number, u
 
     if (!finish_lane_flag) {
         board->pos_normal_lane[block_number].occupied = true;
-       // board->pos_normal_lane[block_number].player_id = player->player_id;
         board->pos_normal_lane[block_number].pos = block_number;
         for (uint8_t i = 0; i < MAX_NUMBER_OF_PEGS; i++) {
             if (board->pos_normal_lane[block_number].occupant[i].peg_id == -1) {
@@ -130,7 +123,6 @@ void KimbleBase::occupy_block_on_board(Player_t *player, uint8_t block_number, u
         }
     } else {
         board->pos_finish_lane[block_number].occupied = true;
-        //board->pos_finish_lane[block_number].player_id = player->player_id;
         board->pos_finish_lane[block_number].pos = block_number;
         for (uint8_t i = 0; i < MAX_NUMBER_OF_PEGS; i++) {
             if (board->pos_finish_lane[block_number].occupant[i].peg_id == -1) {
@@ -153,8 +145,7 @@ void KimbleBase::occupy_block_on_board(Player_t *player, uint8_t block_number, u
 
     sprintf(buf, "Player#%s, Peg#%d occupied POS=%d, (%s), DISTANCE_TO_POP=%d", player->config.player_name, peg_id, block_number,
             finish_lane_flag ? "Finish Lane" : "Normal Lane",
-            finish_lane_flag ? FINISH_POST_MARKER-player->meta_data.pegs[peg_id].distance_covered
-                                             : TOTAL_BLOCKS-player->meta_data.pegs[peg_id].distance_covered);
+            player->meta_data.pegs[peg_id].distance_to_pop);
     ENGINE_LOG(buf);
 }
 
@@ -164,7 +155,8 @@ void KimbleBase::free_block_on_board(Player_t *player, uint8_t block_number, uin
 
     if (!finish_lane_flag) {
         for (uint8_t i = 0; i < MAX_NUMBER_OF_PEGS; i++) {
-            if (board->pos_normal_lane[block_number].occupant[i].peg_id != -1) {
+            if (board->pos_normal_lane[block_number].occupant[i].peg_id != -1
+                    && board->pos_normal_lane[block_number].occupant[i].player_id == player->player_id) {
                 if (board->pos_normal_lane[block_number].occupant[i].peg_id  == peg_id) {
                     board->pos_normal_lane[block_number].occupant[i].peg_id  = -1;
                     board->pos_normal_lane[block_number].occupant[i].player_id  = -1;
@@ -182,7 +174,8 @@ void KimbleBase::free_block_on_board(Player_t *player, uint8_t block_number, uin
 
         for (uint8_t i = 0; i < MAX_NUMBER_OF_PEGS; i++) {
             if (board->pos_finish_lane[block_number].occupant[i].peg_id != -1) {
-                if (board->pos_finish_lane[block_number].occupant[i].peg_id == peg_id) {
+                if (board->pos_finish_lane[block_number].occupant[i].peg_id == peg_id
+                        && board->pos_finish_lane[block_number].occupant[i].player_id == player->player_id) {
                     board->pos_finish_lane[block_number].occupant[i].peg_id = -1;
                     board->pos_finish_lane[block_number].occupant[i].player_id  = -1;
                     board->pos_finish_lane[block_number].pos = block_number;
@@ -209,7 +202,7 @@ const char *KimbleBase::id_to_name(uint8_t id)
     return player->config.player_name;
 }
 
-void KimbleBase::turn_toss(uint8_t *player_ids, uint8_t length)
+void KimbleBase::turn_toss(uint8_t *player_ids, const uint8_t length)
 {
     int die_outcome[length];
     Turn_sequence_t turns[length];
@@ -240,8 +233,8 @@ void KimbleBase::turn_toss(uint8_t *player_ids, uint8_t length)
     }
 
     memcpy(turn_seq, turns, sizeof (Turn_sequence_t)*length);
-    ENGINE_LOG("---- TURN TOSS ----");
 
+    ENGINE_LOG("\n---- TURN TOSS ----");
 
     for (uint8_t i = 0; i < length; i++) {
         sprintf(buf, "\t Turn %d -> Player = %s, dice rolled=%d",i, id_to_name(turn_seq[i].player_id), turn_seq[i].die_outcome);
@@ -297,8 +290,10 @@ int8_t KimbleBase::kill_oponents_peg(uint8_t player_id, uint8_t block_pos)
     player->meta_data.pegs[peg_id].peg_position = IN_HOME;
     player->meta_data.pegs[peg_id].peg_state = IN_HOME;
 
-    //player->meta_data.pegs_at_home+=1;
-    //player->meta_data.pegs_in_normal_lane-=1;
+    player->meta_data.pegs_at_home+=1;
+    if (player->meta_data.pegs_in_normal_lane >= 0) {
+        player->meta_data.pegs_in_normal_lane-=1;
+    }
 
     return SUCCESS;
 }
@@ -359,7 +354,7 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
             next_pos = zone_start_idx;
         } else if ((prev_pos >= 0) && finish_lane_flag) {
             if (lane_transition) {
-                next_pos=steps;
+                next_pos=steps-1; //because next position index in Finish lane starts from 0
             } else {
                 next_pos = prev_pos+steps;
             }
@@ -578,7 +573,6 @@ void KimbleBase::set_player_status(Player_t *player)
 {
     uint8_t winner_count = 0;
     uint8_t still_playing_count = 0;
-    Player_t *other_players = NULL;
 
     Player_summary_t summary[number_of_players];
 
@@ -594,24 +588,17 @@ void KimbleBase::set_player_status(Player_t *player)
         } else if (summary[i].player_status == WON) {
             winner_count++;
         }
-/*        if (player->player_id == i) {
-            continue;
-        }
-        players.access_player_data(i, other_players);*/
-/*        if (other_players->meta_data.player_status == AWAITING_TURN || other_players->meta_data.player_status == ROLLING ) {
-            still_playing_count++;
-        } else if (other_players->meta_data.player_status == WON ){
-            winner_count++;
-        }*/
     }
 
     if (still_playing_count == 0) {
         player->meta_data.player_status = LOST;
         player->meta_data.player_standing = winner_count+1;
-    } else if (still_playing_count > 0) {
+    } else if (still_playing_count > 0 ) {
         if (player->meta_data.pegs_popped_out == MAX_NUMBER_OF_PEGS) {
-            player->meta_data.player_status = WON;
-            player->meta_data.player_standing = winner_count+1;
+            if ( player->meta_data.player_status != WON) {
+                player->meta_data.player_status = WON;
+                player->meta_data.player_standing = winner_count+1;
+            }
         } else {
             player->meta_data.player_status = AWAITING_TURN;
         }

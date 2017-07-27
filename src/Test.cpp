@@ -105,6 +105,20 @@ int8_t Test::enter_finish_lane(KimbleBase *game)
 
 }
 
+int8_t Test::board_single_move_test(KimbleBase *game)
+{
+    game->setup_board(game->board);
+    Player_t *player = NULL;
+
+    game->players.access_player_data(RED, player);
+
+    while (player->meta_data.pegs[0].peg_state != POPPED_OUT) {
+        game->move_peg_to_position(player, player->meta_data.pegs[0].peg_number, 1, player->meta_data.pegs[0].peg_state);
+    }
+
+    return SUCCESS;
+}
+
 int8_t Test::pop_a_peg(KimbleBase *game)
 {
     game->setup_board(game->board);

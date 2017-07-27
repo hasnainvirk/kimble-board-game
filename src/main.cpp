@@ -90,6 +90,7 @@ static void TEST_occupy_block_on_board();
 static void TEST_free_block_on_board();
 static void TEST_enter_finish_lane();
 static void TEST_pop_a_peg();
+static void TEST_board_single_move_test();
 
 static void do_config_players(Player_config_t *config);
 
@@ -101,6 +102,7 @@ int main()
     //TEST_enter_finish_lane();
     //TEST_pop_a_peg();
     TEST_simulate_game();
+    //TEST_board_single_move_test();
     return 0;
     //TEST_add_entry_to_list();
 }
@@ -120,6 +122,22 @@ static void print_meta_data(Player_t *data)
     }
 }
 
+static void TEST_board_single_move_test()
+{
+    Test test_env;
+    Player_config_t config[MAX_NUMBER_OF_PLAYERS];
+
+    do_config_players(config);
+
+    KimbleBase game(MAX_NUMBER_OF_PLAYERS);
+    game.players.create_players(MAX_NUMBER_OF_PLAYERS, config);
+
+    if(test_env.board_single_move_test(&game) != SUCCESS) {
+        fprintf(stderr, "Test - pop_a_peg Failed.\n");
+    }
+
+    printf("Test - board_single_move_test Passed.\n");
+}
 static void TEST_enter_finish_lane()
 {
     Test test_env;

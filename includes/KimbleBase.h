@@ -14,7 +14,7 @@
 #define NORMAL_LANE_BLOCKS             28
 #define FINISH_LANE_BLOCKS             4
 #define TOTAL_BLOCKS                   NORMAL_LANE_BLOCKS+FINISH_LANE_BLOCKS
-#define FINISH_POST_MARKER             5 //steps 1-4 and a final pop-up step
+#define FINISH_POST_MARKER             4 //steps 0-3 and a final pop-up step
 //#define CIRCLE_WRAP_AROUND_MARKER      27 // steps
 
 #define BLUE_ZONE_ORIGIN        0
@@ -77,7 +77,7 @@ private:
     uint8_t number_of_players;
     Ground_t *board;
     Turn_sequence_t *turn_seq;
-    void turn_toss(uint8_t *player_ids, uint8_t length);
+    void turn_toss(uint8_t *player_ids, const uint8_t length);
     void setup_board(Ground_t *board);
     int8_t game_engine();
     void compile_results();

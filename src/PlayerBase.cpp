@@ -11,12 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#if DEBUG == 1
-#define DEBUG(...) printf(__VA_ARGS__)
-#else
-#define DEBUG(...)  void(0)
-#endif
-
 PlayerBase::PlayerBase()
 {
     player_list_head = NULL;
