@@ -170,7 +170,7 @@ static void TEST_simulate_game()
     config[3].peg_colour = YELLOW;
     game.simulate_game(config);
 
-    for (uint8_t i=0; i < MAX_NUMBER_OF_PLAYERS; i++) {
+    /*for (uint8_t i=0; i < MAX_NUMBER_OF_PLAYERS; i++) {
         Player_t *data = NULL;
         int8_t retcode = game.players.access_player_data(i, data);
         if (retcode != SUCCESS) {
@@ -179,7 +179,7 @@ static void TEST_simulate_game()
         }
 
         print_meta_data(data);
-    }
+    }*/
 }
 
 static void do_config_players(Player_config_t *config)

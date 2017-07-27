@@ -297,8 +297,8 @@ int8_t KimbleBase::kill_oponents_peg(uint8_t player_id, uint8_t block_pos)
     player->meta_data.pegs[peg_id].peg_position = IN_HOME;
     player->meta_data.pegs[peg_id].peg_state = IN_HOME;
 
-    player->meta_data.pegs_at_home+=1;
-    player->meta_data.pegs_in_normal_lane-=1;
+    //player->meta_data.pegs_at_home+=1;
+    //player->meta_data.pegs_in_normal_lane-=1;
 
     return SUCCESS;
 }
@@ -358,7 +358,11 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
         if (prev_pos == IN_HOME) {
             next_pos = zone_start_idx;
         } else if ((prev_pos >= 0) && finish_lane_flag) {
-            next_pos = steps;
+            if (lane_transition) {
+                next_pos=steps;
+            } else {
+                next_pos = prev_pos+steps;
+            }
         } else {
             next_pos = (prev_pos + steps) % NORMAL_LANE_BLOCKS;
         }
@@ -422,14 +426,17 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
 
             if (next_pos < FINISH_POST_MARKER) {
                 // move inside finish lane
+                if (lane_transition) {
+                    player->meta_data.pegs_in_finish_lane += 1;
+                    if (player->meta_data.pegs_in_normal_lane >= 0) {
+                        player->meta_data.pegs_in_normal_lane -= 1;
+                    }
+                }
                 player->meta_data.pegs[peg_id].distance_covered = steps;
                 player->meta_data.pegs[peg_id].distance_to_pop = FINISH_POST_MARKER-next_pos;
                 player->meta_data.pegs[peg_id].distance_to_origin_marker = -1;
                 player->meta_data.pegs[peg_id].peg_position = next_pos;
-                player->meta_data.pegs_in_finish_lane += 1;
-                if(player->meta_data.pegs_in_normal_lane != 0) {
-                    player->meta_data.pegs_in_normal_lane -= 1;
-                }
+
             } else if (next_pos == FINISH_POST_MARKER) {
                 // congrats, this peg can pop out now
                 player->meta_data.pegs[peg_id].distance_covered = next_pos+NORMAL_LANE_BLOCKS;
@@ -438,11 +445,11 @@ int8_t KimbleBase::move_peg_to_position(Player_t *player, uint8_t peg_id, uint8_
                 player->meta_data.pegs[peg_id].peg_position = 33;
                 player->meta_data.pegs[peg_id].peg_state = POPPED_OUT;
                 // update peg-wide stats
-                if (player->meta_data.pegs_in_finish_lane != 0) {
+                if (player->meta_data.pegs_in_finish_lane >= 0) {
                     player->meta_data.pegs_in_finish_lane -= 1;
                 }
                 player->meta_data.pegs_popped_out += 1;
-                if ( player->meta_data.pegs_in_play != 0) {
+                if ( player->meta_data.pegs_in_play >= 0) {
                     player->meta_data.pegs_in_play -= 1;
                 }
 
