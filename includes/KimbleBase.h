@@ -27,15 +27,8 @@
 #define RED_ZONE_START         RED_ZONE_ORIGIN+1
 #define YELLOW_ZONE_START      YELLOW_ZONE_ORIGIN+1
 
-
-
-#define ENGINE_LOG_ENABLED
-
-#ifdef ENGINE_LOG_ENABLED
 #define ENGINE_LOG(X)  game_engine_log((NULL), (X));
-#else
-#define ENGINE_LOG(X)
-#endif
+
 
 typedef struct {
     int8_t player_id;
@@ -47,8 +40,6 @@ typedef struct {
     bool in_finish_lane;             //boolean to mark if the position is occupied by a peg
     int8_t pos;            //position on the circle with respect to origin, normal lane
     Position_ocupant_t occupant[4];
-    //int8_t player_id;      //id of the player who occupied the spot, -1 if unoccupied
-    //int8_t peg_ids[MAX_NUMBER_OF_PEGS];         //id of the peg who occupied the spot, -1 if unoccupied
 } Position_t;
 
 typedef struct {
@@ -75,6 +66,7 @@ public:
 
 private:
     uint8_t number_of_players;
+    uint8_t remaining_players_on_board;
     Ground_t *board;
     Turn_sequence_t *turn_seq;
     void turn_toss(uint8_t *player_ids, const uint8_t length);

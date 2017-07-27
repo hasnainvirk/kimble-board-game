@@ -44,7 +44,7 @@ int main()
     while (gameOn != false) {
         MENU_OUT("\n*******************************\n\n");
         MENU_OUT(" 1 - Simulate Game.\n");
-        MENU_OUT(" 2 - Play Game [Not supported yest].\n");
+        MENU_OUT(" 2 - Play Game [Not supported yet].\n");
         MENU_OUT(" 3 - Run Tests.\n");
         MENU_OUT(" 4 - Exit.\n\n");
         MENU_OUT(" Enter your choice and press return: ");
