@@ -37,41 +37,58 @@ int8_t Test::kill_opponent_peg(KimbleBase *game)
     game->board->pos_normal_lane[8].pos = 8;
 
 
-    int8_t retcode = game->move_peg_to_position(player_2, 1, 2, IN_CIRCULATION);
+    game->move_peg_to_position(player_2, 1, 2, IN_CIRCULATION);
 
-    printf("TEST - Retcode %d\n", retcode);
+    //player_1 peg should die
+    if (player_1->meta_data.pegs[0].peg_state == IN_HOME) {
+        return SUCCESS;
+    }
+
+    return -1;
 }
 
 int8_t Test::occupy_block_on_board(KimbleBase *game)
 {
     game->setup_board(game->board);
-    Player_t *player_1, *player_2;
-    game->players.access_player_data(0, player_1);
-    game->players.access_player_data(1, player_2);
+    Player_t *player;
+    game->players.access_player_data(0, player);
 
-    player_1->meta_data.pegs[0].peg_position = 10;
-    player_1->meta_data.pegs_at_home -= 1;
-    player_1->meta_data.pegs_in_normal_lane += 1;
-    player_1->meta_data.pegs[0].peg_state = IN_CIRCULATION;
+    player->meta_data.pegs[0].peg_position = 10;
+    player->meta_data.pegs_at_home -= 1;
+    player->meta_data.pegs_in_normal_lane += 1;
+    player->meta_data.pegs[0].peg_state = IN_CIRCULATION;
 
-    game->occupy_block_on_board(player_1, 12, 0, false);
+    game->occupy_block_on_board(player, 12, 0, false);
+
+    if (game->board->pos_normal_lane[12].occupied == true
+            && game->board->pos_normal_lane[12].occupant[0].player_id == player->player_id) {
+        return SUCCESS;
+    }
+
+    return -1;
 }
 
 int8_t Test::free_block_on_board(KimbleBase *game)
 {
     game->setup_board(game->board);
-    Player_t *player_1, *player_2;
-    game->players.access_player_data(0, player_1);
-    game->players.access_player_data(1, player_2);
+    Player_t *player;
+    game->players.access_player_data(0, player);
 
-    player_1->meta_data.pegs[0].peg_position = 10;
-    player_1->meta_data.pegs_at_home -= 1;
-    player_1->meta_data.pegs_in_normal_lane += 1;
-    player_1->meta_data.pegs[0].peg_state = IN_CIRCULATION;
+    player->meta_data.pegs[0].peg_position = 10;
+    player->meta_data.pegs_at_home -= 1;
+    player->meta_data.pegs_in_normal_lane += 1;
+    player->meta_data.pegs[0].peg_state = IN_CIRCULATION;
 
-    game->occupy_block_on_board(player_1, 12, 0, false);
+    game->occupy_block_on_board(player, 12, 0, false);
 
-    game->free_block_on_board(player_1, 12, 0, false);
+    game->free_block_on_board(player, 12, 0, false);
+
+    if (game->board->pos_normal_lane[12].occupied == false
+            && game->board->pos_normal_lane[12].occupant[0].player_id != player->player_id) {
+        return SUCCESS;
+    }
+
+    return -1;
 }
 
 int8_t Test::enter_finish_lane(KimbleBase *game)
@@ -147,5 +164,4 @@ int8_t Test::pop_a_peg(KimbleBase *game)
     }
 
     return -1;
-
 }

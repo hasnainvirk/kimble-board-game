@@ -5,121 +5,111 @@
  *      Author: hasnain
  */
 
+#include <iostream>
 #include <stdio.h>
 #include <string.h>
+#include "Utilities.h"
 
 #include "KimbleBase.h"
 #include "Test.h"
 
-static const char *determine_user_colour(uint8_t colour)
-{
-    const char *ret_val;
-    switch (colour) {
-        case RED:
-            ret_val = "RED";
-            break;
-        case GREEN:
-            ret_val = "GREEN";
-            break;
-        case YELLOW:
-            ret_val = "YELLOW";
-            break;
-        case BLUE:
-            ret_val =  "BLUE";
-            break;
-        default:
-            return NULL;
-    }
+using namespace std;
 
-    return ret_val;
-}
+#define     MENU_OUT(X)                 cout << ANSI_COLOR_CYAN X ANSI_COLOR_RESET;
 
-static const char *determine_user_status(uint8_t status)
-{
-    const char *ret_val;
-
-    switch (status) {
-        case ROLLING:
-            ret_val = "ROLLING";
-            break;
-        case AWAITING_TURN:
-            ret_val = "AWAITING_TURN";
-            break;
-        case LOST:
-            ret_val = "LOST";
-            break;
-        case WON:
-            ret_val =  "WON";
-            break;
-        default:
-            return NULL;
-    }
-
-    return ret_val;
-}
-
-static const char *determine_peg_state(int8_t state)
-{
-    const char *ret_val;
-
-    switch (state) {
-        case IN_CIRCULATION:
-            ret_val = "IN_CIRCULATION";
-            break;
-        case IN_HOME:
-            ret_val =  "IN_HOME";
-            break;
-        case IN_FINISH_LANE:
-            ret_val =  "IN_FINISH_LANE";
-            break;
-        case POPPED_OUT:
-            ret_val =  "POPPED_OUT";
-            break;
-        default:
-            return NULL;
-    }
-
-    return ret_val;
-}
-
-static void TEST_add_entry_to_list();
-static void TEST_simulate_game();
-static void print_meta_data(Player_t *data);
-static void TEST_kill_opponent_peg();
+/**
+ * Tests
+ *
+ * Function prototypes for running tests
+ */
 static void TEST_occupy_block_on_board();
 static void TEST_free_block_on_board();
+static void TEST_kill_opponent_peg();
 static void TEST_enter_finish_lane();
 static void TEST_pop_a_peg();
 static void TEST_board_single_move_test();
 
+/**
+ * Helper Function prototypes
+ */
 static void do_config_players(Player_config_t *config);
+static void simulate_game();
+static void run_tests();
+
 
 int main()
 {
-    //TEST_occupy_block_on_board();
-    //TEST_free_block_on_board();
-    //TEST_kill_opponent_peg();
-    //TEST_enter_finish_lane();
-    //TEST_pop_a_peg();
-    TEST_simulate_game();
-    //TEST_board_single_move_test();
+    int choice;
+    bool gameOn = true;
+    while (gameOn != false) {
+        MENU_OUT("\n*******************************\n\n");
+        MENU_OUT(" 1 - Simulate Game.\n");
+        MENU_OUT(" 2 - Play Game [Not supported yest].\n");
+        MENU_OUT(" 3 - Run Tests.\n");
+        MENU_OUT(" 4 - Exit.\n\n");
+        MENU_OUT(" Enter your choice and press return: ");
+
+        cin >> choice;
+
+        switch (choice) {
+            case 1:
+                cout << "Simulating game...!\n";
+                simulate_game();
+                gameOn = false;
+                break;
+            case 2:
+                cout << "This feature is not supported yet\n";
+                gameOn = false;
+                break;
+            case 3:
+                cout << "Running Tests ...\n";
+                run_tests();
+                gameOn = false;
+                break;
+            case 4:
+                cout << "Exiting ...\n";
+                gameOn = false;
+                break;
+            default:
+                cout << "Not a Valid Choice. \n";
+                cout << "Choose again.\n";
+                cin >> choice;
+                break;
+        }
+    }
+
     return 0;
-    //TEST_add_entry_to_list();
 }
 
-static void print_meta_data(Player_t *data)
+
+static void simulate_game()
 {
-    printf("Player Name: %s\n", data->config.player_name);
-    printf("Player Colour: %s\n", determine_user_colour(data->config.peg_colour));
-    printf("Player status: %s\n", determine_user_status(data->meta_data.player_status));
-    printf("Pegs - In Play: %d\n", data->meta_data.pegs_in_play);
-    printf("Pegs - Popped out: %d\n", data->meta_data.pegs_popped_out);
-    printf("PEG Status:\n");
-    for (uint8_t j=0; j < MAX_NUMBER_OF_PEGS; j++) {
-        printf("\t Peg-%d:\n", data->meta_data.pegs[j].peg_number);
-        printf("\t Peg position: %d\n", data->meta_data.pegs[j].peg_position);
-        printf("\t Peg state: %s\n", determine_peg_state(data->meta_data.pegs[j].peg_state));
-    }
+    KimbleBase game(MAX_NUMBER_OF_PLAYERS);
+    Player_config_t config[MAX_NUMBER_OF_PLAYERS];
+    do_config_players(config);
+    game.simulate_game(config);
+}
+
+static void do_config_players(Player_config_t *config)
+{
+    config[0].player_name = "Hasnain";
+    config[0].peg_colour = RED;
+    config[1].player_name = "Noriko";
+    config[1].peg_colour = GREEN;
+    config[2].player_name = "Akif";
+    config[2].peg_colour = BLUE;
+    config[3].player_name = "Ahad";
+    config[3].peg_colour = YELLOW;
+}
+
+static void run_tests()
+{
+    TEST_occupy_block_on_board();
+    TEST_free_block_on_board();
+    TEST_kill_opponent_peg();
+    TEST_enter_finish_lane();
+    TEST_pop_a_peg();
+     TEST_board_single_move_test();
 }
 
 static void TEST_board_single_move_test()
@@ -133,7 +123,7 @@ static void TEST_board_single_move_test()
     game.players.create_players(MAX_NUMBER_OF_PLAYERS, config);
 
     if(test_env.board_single_move_test(&game) != SUCCESS) {
-        fprintf(stderr, "Test - pop_a_peg Failed.\n");
+        fprintf(stderr, "Test - board_single_move_test Failed.\n");
     }
 
     printf("Test - board_single_move_test Passed.\n");
@@ -173,46 +163,6 @@ static void TEST_pop_a_peg()
     printf("Test - pop_a_peg Passed.\n");
 
 }
-
-static void TEST_simulate_game()
-{
-    KimbleBase game(MAX_NUMBER_OF_PLAYERS);
-    Player_config_t config[4];
-    config[0].player_name = "Hasnain";
-    config[0].peg_colour = RED;
-    config[1].player_name = "Noriko";
-    config[1].peg_colour = GREEN;
-    config[2].player_name = "Akif";
-    config[2].peg_colour = BLUE;
-    config[3].player_name = "Ahad";
-    config[3].peg_colour = YELLOW;
-    game.simulate_game(config);
-
-    /*for (uint8_t i=0; i < MAX_NUMBER_OF_PLAYERS; i++) {
-        Player_t *data = NULL;
-        int8_t retcode = game.players.access_player_data(i, data);
-        if (retcode != SUCCESS) {
-            fprintf(stderr, "Test failed.\n");
-            return;
-        }
-
-        print_meta_data(data);
-    }*/
-}
-
-static void do_config_players(Player_config_t *config)
-{
-    config[0].player_name = "Hasnain";
-    config[0].peg_colour = RED;
-    config[1].player_name = "Noriko";
-    config[1].peg_colour = GREEN;
-    config[2].player_name = "Akif";
-    config[2].peg_colour = BLUE;
-    config[3].player_name = "Ahad";
-    config[3].peg_colour = YELLOW;
-
-}
-
 static void TEST_kill_opponent_peg()
 {
     Test test_env;
@@ -223,7 +173,11 @@ static void TEST_kill_opponent_peg()
     KimbleBase game(MAX_NUMBER_OF_PLAYERS);
     game.players.create_players(MAX_NUMBER_OF_PLAYERS, config);
 
-    test_env.kill_opponent_peg(&game);
+    if(test_env.kill_opponent_peg(&game) != SUCCESS) {
+        fprintf(stderr, "Test - kill_opponent_peg Failed.\n");
+    }
+
+    printf("Test - kill_opponent_peg Passed.\n");
 }
 
 static void TEST_occupy_block_on_board()
@@ -236,7 +190,11 @@ static void TEST_occupy_block_on_board()
     KimbleBase game(MAX_NUMBER_OF_PLAYERS);
     game.players.create_players(MAX_NUMBER_OF_PLAYERS, config);
 
-    test_env.occupy_block_on_board(&game);
+    if(test_env.occupy_block_on_board(&game) != SUCCESS) {
+        fprintf(stderr, "Test - occupy_block_on_board Failed.\n");
+    }
+
+    printf("Test - occupy_block_on_board Passed.\n");
 }
 
 static void TEST_free_block_on_board()
@@ -249,34 +207,9 @@ static void TEST_free_block_on_board()
     KimbleBase game(MAX_NUMBER_OF_PLAYERS);
     game.players.create_players(MAX_NUMBER_OF_PLAYERS, config);
 
-    test_env.free_block_on_board(&game);
-}
-
-static void TEST_add_entry_to_list()
-{
-    //Variables
-    static PlayerBase players;
-    Player_config_t config[4];
-    config[0].player_name = "Hasnain";
-    config[0].peg_colour = RED;
-    config[1].player_name = "Noriko";
-    config[1].peg_colour = GREEN;
-    config[2].player_name = "Akif";
-    config[2].peg_colour = BLUE;
-    config[3].player_name = "Ahad";
-    config[3].peg_colour = YELLOW;
-
-    players.create_players(4, config);
-
-    for (uint8_t i=0; i < MAX_NUMBER_OF_PLAYERS; i++) {
-        Player_t *data = NULL;
-        int8_t retcode = players.access_player_data(i, data);
-        if (retcode != SUCCESS) {
-            fprintf(stderr, "Test failed.\n");
-            return;
-        }
-
-        print_meta_data(data);
+    if(test_env.free_block_on_board(&game) != SUCCESS) {
+        fprintf(stderr, "Test - free_block_on_board Failed.\n");
     }
-}
 
+    printf("Test - free_block_on_board Passed.\n");
+}

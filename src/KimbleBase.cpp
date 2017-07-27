@@ -611,7 +611,7 @@ int8_t KimbleBase::game_engine()
     bool rolling = false;
     int8_t list_peg_ids[MAX_NUMBER_OF_PEGS];
 
-    ENGINE_LOG("\n---- SIMULATING GAME ----\n");
+    ENGINE_LOG("\t---- SIMULATING GAME ----\n");
 
     uint8_t status = AWAITING_TURN;
     while (status != LOST) {
@@ -702,24 +702,24 @@ int8_t KimbleBase::game_engine()
 void KimbleBase::compile_results()
 {
     Player_t *player = NULL;
-    uint8_t player_standing;
+    Player_config_t player_config[MAX_NUMBER_OF_PLAYERS];
 
     printf("\n *********** RESULTS ********* \n");
 
-    for (uint8_t i=0; i<number_of_players; i++) {
+    for (uint8_t i = 0; i < number_of_players; i++) {
         players.access_player_data(i, player);
-        player_standing = player->meta_data.player_standing;
-
-        if (player_standing == 1) {
-            game_engine_log(&(player->config), " -> Winner !! .. Congratulations");
-        } else if (player_standing == 2) {
-            game_engine_log(&(player->config), " -> Runners Up");
-        } else if (player_standing == 3) {
-            game_engine_log(&(player->config), " -> 3rd Position");
-        } else {
-            game_engine_log(&(player->config), " -> Lost ! .. Better luck next time");
+        uint8_t temp = player->meta_data.player_standing;
+        for (uint8_t j = 1; j <= 4; j++) {
+            if (temp == j) {
+                player_config[j-1] = player->config;
+            }
         }
     }
+
+    game_engine_log(&(player_config[0]), " -> Winner !! .. Congratulations");
+    game_engine_log(&(player_config[1]), " -> Runners Up");
+    game_engine_log(&(player_config[2]), " -> 3rd Position");
+    game_engine_log(&(player_config[3]), " -> Lost ! .. Better luck next time");
 }
 
 int8_t KimbleBase::simulate_game(Player_config_t *config)
